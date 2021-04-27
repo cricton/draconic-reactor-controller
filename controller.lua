@@ -452,7 +452,7 @@ function updateGUI()
         drawReactorStatus(mon, reactorInfo)
         drawConsole(mon)
         
-        lastStatus = reactorInfo.status
+        
         sleep(0.1)
     
         end
@@ -475,6 +475,7 @@ function updateIO()
             manageInputPower(reactorInfo)
         end
         
+        lastStatus = reactorInfo.status
         sleep(1)
     end
 end
