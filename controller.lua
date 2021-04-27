@@ -9,7 +9,7 @@ local reactor
 local fluxInput
 local fluxExtract
 
-local version = 1.1
+local version = 1.2
 
 local mon, monitor, monX, monY
 
@@ -441,7 +441,7 @@ function buttons()
 end
 
 
-function update()
+function updateGUI()
                                         
     while true do
         f.clear(mon)
@@ -452,7 +452,15 @@ function update()
         drawReactorStatus(mon, reactorInfo)
         drawConsole(mon)
         
-        
+        lastStatus = reactorInfo.status
+        sleep(0.1)
+    
+        end
+    end
+
+function updateIO()
+    while true do
+        reactorInfo = reactor.getReactorInfo()
         if reactorInfo.status == "running" then
             manageOutputPower(reactorInfo)
             manageFuelEmpty(reactorInfo)
@@ -467,10 +475,7 @@ function update()
             manageInputPower(reactorInfo)
         end
         
-        lastStatus = reactorInfo.status
         sleep(1)
-    
-        end
     end
-
-parallel.waitForAny(buttons, update)
+end
+parallel.waitForAny(buttons, updateGUI, updateIO)
