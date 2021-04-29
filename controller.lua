@@ -9,7 +9,8 @@ local reactor
 local fluxInput
 local fluxExtract
 
-local version = 1.2
+--local version = 1.2
+local version = " exp"
 
 local mon, monitor, monX, monY
 
@@ -260,7 +261,7 @@ end
 local consoleLog = {}
 function log(toLog)
 
-    if string.len(toLog)>30 then
+    if string.len(toLog)>42 then
         log("String too long")
         log(toLog:sub(1, 42))
         return
@@ -307,6 +308,7 @@ local weakening
 local lastStrength
 local strengthTolerance = 0
 
+
 function manageInputPower(reactorInfo)
     fieldStrength = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
     
@@ -327,7 +329,7 @@ function manageInputPower(reactorInfo)
     
     if fieldStrength < 50 and weakening then
         logTime("Increasing input")
-        fluxInput.setSignalLowFlow(fluxInput.getSignalLowFlow() + 5000)
+        fluxInput.setSignalLowFlow(fluxInput.getSignalLowFlow() + 20000)
     end    
 
     if fieldStrength > 55 and not weakening then
@@ -343,6 +345,52 @@ local cooling
 local lastTemp
 local tempTolerance = 3
 local emergencyDecrease = false
+
+local changedAtTemp = 0
+local changeRate = 0
+local changeDir
+local targetTemp = 7500
+local minTemp = 2000
+function manageOutputPowerNew(reactorInfo)
+    
+    temp = reactorInfo.temperature
+    
+    if lastTemp == nil then
+        lastTemp = temp
+        return
+    end
+    --logTime(""..reactorInfo.status .. " " .. reactorInfo.generationRate)
+    if reactorInfo.status ~= "running" or lastStatus == "warming_up" then
+        --logTime("Initial power")
+        fluxOutput.setSignalLowFlow(reactorInfo.generationRate)
+        lastTemp = temp
+        return
+    end
+    
+    
+    --logTime(temp .. " " ..lastTemp)
+    changeRate = temp - lastTemp
+    
+    tempDif = math.abs(targetTemp - temp)
+    maxDif = targetTemp - minTemp
+    tolerance = 15 * tempDif/maxDif
+    
+    expectedTemp = temp+(changeRate*50)
+    --logTime(changeRate .. ", " .. expectedTemp)
+    if expectedTemp < targetTemp and (temp > changedAtTemp + tolerance or temp < changedAtTemp - tolerance) then
+        
+        
+        --logTime(tempDif .. ", " .. changeRate .. ", " .. math.exp(-0.25*changeRate))
+        powerInc = fluxOutput.getSignalLowFlow() + (tempDif*30) * math.exp(-0.25*changeRate)
+        fluxOutput.setSignalLowFlow(powerInc)
+        changedAtTemp = temp
+    end
+    
+    if temp <= 7499 or temp >=7500 then
+        logTime(temp)
+    end
+    lastTemp = temp
+end
 
 function manageOutputPower(reactorInfo)
     temp = reactorInfo.temperature
@@ -461,8 +509,8 @@ function updateGUI()
 function updateIO()
     while true do
         reactorInfo = reactor.getReactorInfo()
+        manageOutputPowerNew(reactorInfo)
         if reactorInfo.status == "running" then
-            manageOutputPower(reactorInfo)
             manageFuelEmpty(reactorInfo)
         end
         
@@ -476,6 +524,7 @@ function updateIO()
         end
         
         lastStatus = reactorInfo.status
+        
         sleep(1)
     end
 end
