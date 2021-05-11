@@ -3,8 +3,8 @@
 --Version 1.0
 --taken from https://github.com/OmegaPhi115/Draconic-Evolution-Reactor-Controller/blob/master/install.lua, credit goes to OmegaPhi115
 
-local libURL = "https://raw.githubusercontent.com/cricton/draconic-reactor-controller/main/lib/f.lua?token=AAHLOEFWJ5ZRT3ICNEZQFL3ARALI2"
-local startupURL = "https://raw.githubusercontent.com/cricton/draconic-reactor-controller/main/controller.lua?token=AAHLOEFSQOHXL4HIMFSAJ33ARALLG"
+local libURL = "https://raw.githubusercontent.com/cricton/draconic-reactor-controller/main/lib/f.lua"
+local startupURL = "https://raw.githubusercontent.com/cricton/draconic-reactor-controller/main/controller.lua"
 local lib, startup
 local libFile, startupFile
 
