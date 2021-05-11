@@ -114,7 +114,7 @@ function drawReactorInfo(mon, reactorInfo)
     f.progress_bar(mon, infoX, infoY+4, 20, reactorPercentage, 100, reactorColor, colors.gray)
     
     --draw containment field
-    fieldPercentage = math.floor(reactorInfo.fieldStrength/10000)/100
+    fieldPercentage = math.floor((reactorInfo.fuelConversion / reactorInfo.maxFuelConversion)*10000)/100
     if fieldPercentage > 55 or fieldPercentage < 50 then  
         fieldColor = colors.orange
         if fieldPercentage < 40 then
