@@ -1,6 +1,6 @@
 --installation script
 --rhNbNbFE
---Version 1.0
+--Version 2.0
 --taken from https://github.com/OmegaPhi115/Draconic-Evolution-Reactor-Controller/blob/master/install.lua, credit goes to OmegaPhi115
 
 local libURL = "https://raw.githubusercontent.com/cricton/draconic-reactor-controller/main/lib/f.lua"
