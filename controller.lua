@@ -11,7 +11,7 @@ local fluxInput
 local fluxExtract
 
 --local version = 1.2
-local version = 2.0
+local version = "2.1"
 
 local mon, monitor, monX, monY
 
@@ -65,6 +65,8 @@ for i,k in pairs(reactorInfo) do
     print(i .. ": " .. tostring(k))
 end
 
+
+
 for i,k in pairs(reactor) do
     print(i .. ": " .. tostring(k))
 end
@@ -114,7 +116,7 @@ function drawReactorInfo(mon, reactorInfo)
     f.progress_bar(mon, infoX, infoY+4, 20, reactorPercentage, 100, reactorColor, colors.gray)
     
     --draw containment field
-    fieldPercentage = math.floor((reactorInfo.fuelConversion / reactorInfo.maxFuelConversion)*10000)/100
+    fieldPercentage = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
     if fieldPercentage > 55 or fieldPercentage < 50 then  
         fieldColor = colors.orange
         if fieldPercentage < 40 then
@@ -151,7 +153,7 @@ function drawOutlines(mon)
     f.draw_line(mon, 1, 14, 50, colors.black)
     f.draw_line(mon, 2, 13, 48, colors.gray)
     
-    f.draw_text(mon, 40, 25, " ver "..version.." ", colors.gray, colors.black)
+    f.draw_text(mon, 39, 25, " ver "..version.." ", colors.gray, colors.black)
     
 end
 
@@ -314,6 +316,7 @@ local strengthTolerance = 0
 
 function manageInputPower(reactorInfo)
     fieldStrength = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
+    drainRate = reactorInfo.fieldDrainRate
     
     if lastStrength == null then
        lastStrength = fieldStrength
@@ -325,44 +328,38 @@ function manageInputPower(reactorInfo)
        weakening = false
     end
     
-    if lastStatus == "warming_up" then
-        fluxInput.setSignalLowFlow(100000)
-        return
-    end
-    
-    if fieldStrength < 50 and weakening then
-        logTime("Increasing input")
-        fluxInput.setSignalLowFlow(fluxInput.getSignalLowFlow() + 20000)
-    end    
+    --logTime(drainRate+fluxInput.getSignalLowFlow())
+    fluxInput.setSignalLowFlow(drainRate*2)
+    --if fieldStrength < 50 and weakening then
+    --    logTime("Increasing input")
+    --    fluxInput.setSignalLowFlow(drainRate*1.2)
+    --end    
 
-    if fieldStrength > 55 and not weakening then
-       logTime("Decreasing input")
-       fluxInput.setSignalLowFlow(fluxInput.getSignalLowFlow()-5000)   
-    end
+    --if fieldStrength > 55 and not weakening then
+    --   logTime("Decreasing input")
+    --   fluxInput.setSignalLowFlow(drainRate*0.9)   
+    --end
      
     lastStrength = fieldStrength
 end
 
 
 local cooling 
-local lastTemp
+
 local tempTolerance = 3
 local emergencyDecrease = false
 
-local changedAtTemp = 0
-local changeRate = 0
-local changeDir
+
+
+
 
 local minTemp = 2000
-local minInc = 25
+
 function manageOutputPower(reactorInfo)
     
     temp = reactorInfo.temperature
-    
-    if lastTemp == nil then
-        lastTemp = temp
-        return
-    end
+    genRate = reactorInfo.generationRate
+
     --logTime(""..reactorInfo.status .. " " .. reactorInfo.generationRate)
     if reactorInfo.status ~= "running" or lastStatus == "warming_up" then
         if reactorInfo.status == "stopping" then
@@ -371,56 +368,30 @@ function manageOutputPower(reactorInfo)
         end
         --logTime("Initial power: " .. reactorInfo.generationRate*25)
         fluxOutput.setSignalLowFlow(reactorInfo.generationRate*25)
-        lastTemp = temp
-        changedAtTemp= temp
         return
     end
     
-    
-    --logTime(temp .. " " ..lastTemp)
-    changeRate = temp - lastTemp
-    if changeRate < 0 then
-        changeRate = 0
+
+    if genRate == 0 then
+        fluxOutput.setSignalLowFlow(1000)
+        return
     end
     
+    tempDif = math.floor((targetTemp+1) - temp)
     
-    tempDif = math.abs((targetTemp+1) - temp)
-    maxDif = targetTemp - minTemp
-    tolerance = 65 * tempDif/maxDif
-    
-    expectedTemp = temp+(changeRate*85)
     --logTime(changeRate .. ", " .. expectedTemp)
     
-    if temp > targetTemp then
-        if temp <targetTemp+0.5 then
-            fluxOutput.setSignalLowFlow(reactorInfo.generationRate)
-            changedAtTemp = temp
-            lastTemp = temp
-            return
-        else
-            changedAtTemp = temp
-            lastTemp = temp
-            return
+
+    if temp <targetTemp+0.5 then
+        fluxOutput.setSignalLowFlow(genRate + tempDif*(genRate/10000))
+    else
+        if genRate < fluxOutput.getSignalLowFlow then
+            fluxOutput.setSignalLowFlow(genRate)
         end
     end
-    
-    if expectedTemp <= targetTemp and (temp > changedAtTemp + tolerance or temp < changedAtTemp - tolerance) then
-        
-        
-        --logTime(tempDif)
-        toIncrease = (tempDif*40) * math.exp(-0.75*changeRate)
 
-        powerInc = fluxOutput.getSignalLowFlow() + toIncrease
 
-        fluxOutput.setSignalLowFlow(powerInc)
-        changedAtTemp = temp
-        
-    end
-    
-    --if temp <= targetTemp or temp >=targetTemp+1 then
-    --    logTime(temp)
-    --end
-    lastTemp = temp
+    --logTime(tempDif)
 end
 
 
@@ -436,6 +407,7 @@ end
 function manageWarmup(reactorInfo)
     if math.floor(reactorInfo.temperature) >= 2000 then
         reactor.activateReactor()
+        fluxInput.setSignalLowFlow(reactorInfo.fieldDrainRate)
         return
     end
     fluxInput.setSignalLowFlow(1000000)
@@ -465,12 +437,10 @@ function buttons()
                         reactor.chargeReactor()
                         logTime("Charging reactor")
                     else
-                        if reactorStatus == "stopping" then
-                            logTime("Can't start reactor while stopping.")
-                        else
+                        
                             reactor.activateReactor()
                             logTime("Starting reactor.")
-                        end
+                        
                     end
                 end
             end
@@ -520,7 +490,7 @@ function updateIO()
         
         lastStatus = reactorInfo.status
         
-        sleep(1)
+        sleep(0.1)
     end
 end
 parallel.waitForAny(buttons, updateGUI, updateIO)
