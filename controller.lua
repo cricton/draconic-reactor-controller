@@ -385,7 +385,7 @@ function manageOutputPower(reactorInfo)
     if temp <targetTemp+0.5 then
         fluxOutput.setSignalLowFlow(genRate + tempDif*(genRate/10000))
     else
-        if genRate < fluxOutput.getSignalLowFlow then
+        if genRate < fluxOutput.getSignalLowFlow() then
             fluxOutput.setSignalLowFlow(genRate)
         end
     end
