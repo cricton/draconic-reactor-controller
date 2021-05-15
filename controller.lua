@@ -126,7 +126,7 @@ function drawReactorInfo(mon, reactorInfo)
         fieldColor = colors.green
     end
     
-    fieldString = string.format("%.2f%%", fieldPercentage)
+    fieldString = string.format("%.2f", fieldPercentage)
     f.draw_text(mon, infoX, infoY+6, ("Field power: " .. fieldString .. "% "), colors.white, colors.black)
     f.progress_bar(mon, infoX, infoY + 7, 20, fieldPercentage, 100, fieldColor, colors.gray)
  
