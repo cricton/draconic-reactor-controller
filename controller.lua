@@ -126,7 +126,8 @@ function drawReactorInfo(mon, reactorInfo)
         fieldColor = colors.green
     end
     
-    f.draw_text(mon, infoX, infoY+6, ("Field power: " .. fieldPercentage .. "% "), colors.white, colors.black)
+    fieldString = string.format("%.2f%%", fieldPercentage)
+    f.draw_text(mon, infoX, infoY+6, ("Field power: " .. fieldString .. "% "), colors.white, colors.black)
     f.progress_bar(mon, infoX, infoY + 7, 20, fieldPercentage, 100, fieldColor, colors.gray)
  
     
@@ -380,7 +381,6 @@ function manageOutputPower(reactorInfo)
     tempDif = math.floor((targetTemp+1) - temp)
     
     --logTime(changeRate .. ", " .. expectedTemp)
-    
 
     if temp <targetTemp+0.5 then
         fluxOutput.setSignalLowFlow(genRate + tempDif*(genRate/10000))
