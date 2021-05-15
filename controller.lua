@@ -99,7 +99,9 @@ function drawReactorInfo(mon, reactorInfo)
     else
         fuelColor = colors.green
     end
-    f.draw_text(mon, infoX,infoY, ("Fuel left: " .. 100-fuelPercentage .. "%") ,colors.white, colors.black)
+    
+    fuelString = string.format("%.2f", 100-fuelPercentage)
+    f.draw_text(mon, infoX,infoY, ("Fuel left: " .. fuelString .. "%") ,colors.white, colors.black)
     f.progress_bar(mon, infoX, infoY+1, 20, fuelPercentage, 100, fuelColor, colors.gray)
     
     --draw reactor temp
