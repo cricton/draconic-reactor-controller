@@ -1,5 +1,5 @@
 --installation script
---rhNbNbFE
+--aGrPQ2AQ
 --Version 2.0
 --taken from https://github.com/OmegaPhi115/Draconic-Evolution-Reactor-Controller/blob/master/install.lua, credit goes to OmegaPhi115
 
