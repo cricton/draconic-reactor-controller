@@ -2,7 +2,7 @@ local reactorSide = "back"
 local fluxOutputSide = "right"
 local maxTemp = 8000
 local targetTemp = 7500
-
+local tolerance = 25
 os.loadAPI("lib/f")
 
 
@@ -11,7 +11,7 @@ local fluxInput
 local fluxExtract
 
 --local version = 1.2
-local version = "2.1"
+local version = "2.2"
 
 local mon, monitor, monX, monY
 
@@ -100,13 +100,13 @@ function drawReactorInfo(mon, reactorInfo)
         fuelColor = colors.green
     end
     
-    fuelString = string.format("%.2f", 100-fuelPercentage)
-    f.draw_text(mon, infoX,infoY, ("Fuel left: " .. fuelString .. "%") ,colors.white, colors.black)
+    fuelString = string.format("%.2f", fuelPercentage)
+    f.draw_text(mon, infoX,infoY, ("Fuel used: " .. fuelString .. "%") ,colors.white, colors.black)
     f.progress_bar(mon, infoX, infoY+1, 20, fuelPercentage, 100, fuelColor, colors.gray)
     
     --draw reactor temp
     reactorPercentage = math.floor((reactorInfo.temperature / maxTemp)*10000)/100
-    if reactorInfo.temperature > (targetTemp + 1) then
+    if reactorInfo.temperature > (targetTemp + tolerance) then
         reactorColor = colors.orange
         if reactorInfo.temperature>maxTemp then
             reactorColor = colors.red
@@ -119,7 +119,7 @@ function drawReactorInfo(mon, reactorInfo)
     
     --draw containment field
     fieldPercentage = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
-    if fieldPercentage > 55 or fieldPercentage < 50 then  
+    if (fieldPercentage > 55 or fieldPercentage < 45) and reactorInfo.status == running then  
         fieldColor = colors.orange
         if fieldPercentage < 40 then
             fieldColor = colors.red
@@ -226,7 +226,7 @@ function drawReactorStatus(mon)
         statusText = "running"
     elseif reactorInfo.status == "warming_up" then
         statusColor = colors.blue
-        statusText = "warming up"
+        statusText = "heating"
     elseif reactorInfo.status == "stopping" then
         statusColor = colors.purple
         statusText = "stopping"
@@ -312,38 +312,22 @@ end
 
 
 lastStatus = nil
-local weakening
 local lastStrength
 local strengthTolerance = 0
 
 
 function manageInputPower(reactorInfo)
-    fieldStrength = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
+    if reactorInfo.status == "cooling" or reactorInfo.status == "cold" then
+        fluxInput.setSignalLowFlow(0)
+        return
+    end
+
     drainRate = reactorInfo.fieldDrainRate
     
-    if lastStrength == null then
-       lastStrength = fieldStrength
-    end
     
-    if (lastStrength - fieldStrength) + strengthTolerance > 0 then
-       weakening = true
-    else 
-       weakening = false
-    end
-    
-    --logTime(drainRate+fluxInput.getSignalLowFlow())
-    fluxInput.setSignalLowFlow(drainRate*2)
-    --if fieldStrength < 50 and weakening then
-    --    logTime("Increasing input")
-    --    fluxInput.setSignalLowFlow(drainRate*1.2)
-    --end    
 
-    --if fieldStrength > 55 and not weakening then
-    --   logTime("Decreasing input")
-    --   fluxInput.setSignalLowFlow(drainRate*0.9)   
-    --end
-     
-    lastStrength = fieldStrength
+    fluxInput.setSignalLowFlow(drainRate*2)
+
 end
 
 
@@ -362,21 +346,25 @@ function manageOutputPower(reactorInfo)
     
     temp = reactorInfo.temperature
     genRate = reactorInfo.generationRate
-
+    energyRate = reactorInfo.energySaturation/reactorInfo.maxEnergySaturation
+    
     --logTime(""..reactorInfo.status .. " " .. reactorInfo.generationRate)
-    if reactorInfo.status ~= "running" or lastStatus == "warming_up" then
+    if reactorInfo.status ~= "running" then
+        if reactorInfo.status == "cold" then
+            fluxOutput.setSignalLowFlow(0)
+            return
+        end
         if reactorInfo.status == "stopping" then
             fluxOutput.setSignalLowFlow(reactorInfo.generationRate)
             return
         end
-        --logTime("Initial power: " .. reactorInfo.generationRate*25)
         fluxOutput.setSignalLowFlow(reactorInfo.generationRate*25)
         return
     end
     
-
-    if genRate == 0 then
-        fluxOutput.setSignalLowFlow(1000)
+    
+    if energyRate >= 0.9 then
+        fluxOutput.setSignalLowFlow(reactorInfo.energySaturation/100)
         return
     end
     
@@ -400,9 +388,9 @@ end
     
 function manageFuelEmpty(reactorInfo)
     usedFuelPercent = math.floor((reactorInfo.fuelConversion / reactorInfo.maxFuelConversion)*100)
-    if usedFuelPercent > 90 and reactorInfo.status == "running" then
+    if usedFuelPercent >= 80 and reactorInfo.status == "running" then
         reactor.stopReactor()
-        print("Stopping, fuel almost depleted")
+        logTime("Stopping, please refuel.")
     end
 end
 
@@ -418,7 +406,7 @@ end
             
 function buttons()
     while true do
-        sleep(0)
+        sleep(0.1)
         
         event, side, xPos, yPos = os.pullEvent("monitor_touch")
 
@@ -457,11 +445,11 @@ end
 
 
 function updateGUI()
-                                        
+    
     while true do
         f.clear(mon)
+        drawOutlines(mon)   
         reactorInfo = reactor.getReactorInfo()
-        drawOutlines(mon)
         drawReactorInfo(mon, reactorInfo)
         drawReactorIO(mon, reactorInfo)
         drawReactorStatus(mon, reactorInfo)
@@ -485,8 +473,7 @@ function updateIO()
             manageWarmup(reactorInfo)
         end
         
-        --log(reactorInfo.status)
-        if reactorInfo.status ~= "cooling" and reactorInfo.status ~= "warming_up" then
+        if reactorInfo.status ~= "warming_up" then
             manageInputPower(reactorInfo)
         end
         
