@@ -45,31 +45,23 @@ end
 monX, monY = monitor.getSize()
 mon = {}
 mon.monitor, mon.X, mon.Y = monitor, monX, monY
-print(mon.monitor)
---[[
-if fluxOutput.getSignalLowFlow() <= 300000 then
-    fluxOutput.setSignalLowFlow(300000)
-end
 
-if fluxInput.getSignalLowFlow() <= 100000 then
-    fluxInput.setSignalLowFlow(100000)
-end
---]]
+
 
 f.clear(mon)
 
 
 reactorInfo = reactor.getReactorInfo()
 
-for i,k in pairs(reactorInfo) do
-    print(i .. ": " .. tostring(k))
-end
+--for i,k in pairs(reactorInfo) do
+--    print(i .. ": " .. tostring(k))
+--end
 
 
 
-for i,k in pairs(reactor) do
-    print(i .. ": " .. tostring(k))
-end
+--for i,k in pairs(reactor) do
+--    print(i .. ": " .. tostring(k))
+--end
 
 
 function draw_vertical(mon, x, y, length, color)
