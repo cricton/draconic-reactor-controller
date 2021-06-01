@@ -110,7 +110,12 @@ function drawReactorInfo(mon, reactorInfo)
     f.progress_bar(mon, infoX, infoY+1, 20, fuelPercentage, 100, fuelColor, colors.gray)
     
     --draw reactor temp
-    reactorPercentage = math.floor((reactorInfo.temperature / maxTemp)*10000)/100
+    currentTemp = reactorInfo.temperature
+    if currentTemp>maxTemp then
+        currentTemp = maxTemp
+    end
+    
+    reactorPercentage = math.floor((currentTemp / maxTemp)*10000)/100
     if reactorInfo.temperature > (targetTemp + tolerance) then
         reactorColor = colors.orange
         if reactorInfo.temperature>maxTemp then
@@ -199,11 +204,7 @@ function drawReactorIO(mon, reactorInfo)
 end
 
 
-
-
-
 buttonX, buttonY = 5, 22
-
 function drawButtons(mon)
     
     
@@ -391,13 +392,13 @@ function manageOutputPower(reactorInfo)
     end
     
     
-    if energyRate >= 0.9 then
+    if energyRate >= 0.75 then
         fluxOutput.setSignalLowFlow(reactorInfo.energySaturation/100)
         return
     end
     
     tempDif = math.floor((targetTemp+1) - temp)
-    
+    tempDif = math.max(tempDif, 0)
     --logTime(changeRate .. ", " .. expectedTemp)
 
     if temp <targetTemp+0.5 then
@@ -428,19 +429,23 @@ function manageWarmup(reactorInfo)
         fluxInput.setSignalLowFlow(reactorInfo.fieldDrainRate)
         return
     end
-    fluxInput.setSignalLowFlow(1000000)
-    
+    --if reactorInfo.fieldStrength/reactorInfo.maxFieldStrength >= 0.5 then
+    --    fluxInput.setSignalLowFlow(2*reactorInfo.fieldDrainRate)
+    --else
+        fluxInput.setSignalLowFlow(1000000)
+    --end
 end            
             
+buttonY, buttonWidth, buttonHeight =  22, 6, 1
+buttonStopX=4
+buttonStartX= 12
+buttonClearX= 20
 function buttons()
-    while true do
-        sleep(0.1)
-        
+    while true do   
         event, side, xPos, yPos = os.pullEvent("monitor_touch")
-
-        if yPos >= 22 and yPos <= 23 then
+        if yPos >= buttonY and yPos <= buttonY + buttonHeight then
             reactorStatus = reactor.getReactorInfo().status
-            if xPos >=4 and xPos <= 10 then
+            if xPos >=buttonStopX and xPos <= buttonStopX+buttonWidth then
                 
                 if reactorStatus == "running" then
                     reactor.stopReactor()
@@ -449,7 +454,7 @@ function buttons()
                 end
             end
             
-            if xPos >=12 and xPos <= 18 then
+            if xPos >=buttonStartX and xPos <= buttonStartX+buttonWidth then
                 if reactorStatus ~= "running" then
                     if reactorStatus == "cold" or reactorStatus == "cooling" then
                         reactor.chargeReactor()
@@ -463,7 +468,7 @@ function buttons()
                 end
             end
             
-            if xPos >=20 and xPos <= 26 then
+            if xPos >=buttonClearX and xPos <= buttonClearX+buttonWidth then
                 
                 clearConsole()
             end
