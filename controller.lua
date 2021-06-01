@@ -10,8 +10,7 @@ local reactor
 local fluxInput
 local fluxExtract
 
---local version = 1.2
-local version = "2.3"
+local version = "2.4"
 local singleLine = 2
 local singleLineInfo = 3
 local mon, monitor, monX, monY
