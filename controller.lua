@@ -11,8 +11,9 @@ local fluxInput
 local fluxExtract
 
 --local version = 1.2
-local version = "2.2"
-
+local version = "2.3"
+local singleLine = 2
+local singleLineInfo = 3
 local mon, monitor, monX, monY
 
 local reactorInfo
@@ -85,10 +86,14 @@ function draw_vertical(mon, x, y, length, color)
 
 end
 
-
+infoX, infoY = 4, 4
 function drawReactorInfo(mon, reactorInfo)
+    --clear text boxes:
+    f.draw_line(mon, infoX + string.len("Fuel used: "),infoY, 10,colors.black)
+    f.draw_line(mon, infoX + string.len("Temperature: "),infoY+3, 8,colors.black)
+    f.draw_line(mon, infoX + string.len("Field power: "),infoY+6, 8,colors.black)
+
     
-    infoX, infoY = 4, 4
     --draw fuel conversion
     fuelPercentage = math.floor((reactorInfo.fuelConversion / reactorInfo.maxFuelConversion)*10000)/100
     if fuelPercentage > 75 then
@@ -101,7 +106,7 @@ function drawReactorInfo(mon, reactorInfo)
     end
     
     fuelString = string.format("%.2f", fuelPercentage)
-    f.draw_text(mon, infoX,infoY, ("Fuel used: " .. fuelString .. "%") ,colors.white, colors.black)
+    f.draw_text(mon, infoX + string.len("Fuel used: "),infoY, (fuelString .. "%") ,colors.white, colors.black)
     f.progress_bar(mon, infoX, infoY+1, 20, fuelPercentage, 100, fuelColor, colors.gray)
     
     --draw reactor temp
@@ -114,8 +119,8 @@ function drawReactorInfo(mon, reactorInfo)
     else
         reactorColor = colors.green
     end
-    f.draw_text(mon, infoX, infoY+3, ("Temperature: "  .. math.floor(reactorInfo.temperature) .. "°C"), colors.white, colors.black)
-    f.progress_bar(mon, infoX, infoY+4, 20, reactorPercentage, 100, reactorColor, colors.gray)
+    f.draw_text(mon, infoX + string.len("Temperature: "), infoY+singleLineInfo, (math.floor(reactorInfo.temperature) .. "°C"), colors.white, colors.black)
+    f.progress_bar(mon, infoX, infoY+singleLineInfo+1, 20, reactorPercentage, 100, reactorColor, colors.gray)
     
     --draw containment field
     fieldPercentage = math.ceil(reactorInfo.fieldStrength / reactorInfo.maxFieldStrength * 10000)*.01
@@ -129,8 +134,8 @@ function drawReactorInfo(mon, reactorInfo)
     end
     
     fieldString = string.format("%.2f", fieldPercentage)
-    f.draw_text(mon, infoX, infoY+6, ("Field power: " .. fieldString .. "% "), colors.white, colors.black)
-    f.progress_bar(mon, infoX, infoY + 7, 20, fieldPercentage, 100, fieldColor, colors.gray)
+    f.draw_text(mon, infoX+string.len("Field power: "), infoY+(2*singleLineInfo), (fieldString .. "%"), colors.white, colors.black)
+    f.progress_bar(mon, infoX, infoY +(2*singleLineInfo)+1, 20, fieldPercentage, 100, fieldColor, colors.gray)
  
     
     
@@ -163,12 +168,16 @@ end
 
 local IOX, IOY = 30, 17
 function drawReactorIO(mon, reactorInfo)
+    --clear text fields
+    f.draw_line(mon, IOX + string.len("Out: "), IOY, 14, colors.black)
+    f.draw_line(mon, IOX + string.len("In: "), IOY+singleLine, 15, colors.black)
+
     if fluxOutput.getSignalLowFlow() > 999999 then
-        f.draw_text(mon, IOX, IOY, ("Out: " .. fluxOutput.getSignalLowFlow() .. " rf/t"), colors.green,colors.black)
+        f.draw_text(mon, IOX + string.len("Out: "), IOY, (fluxOutput.getSignalLowFlow() .. " rf/t"), colors.green,colors.black)
     else
-        f.draw_text(mon, IOX, IOY, ("Out:  " .. fluxOutput.getSignalLowFlow() .. " rf/t"), colors.green,colors.black)
+        f.draw_text(mon, IOX + string.len("Out:  "), IOY, (fluxOutput.getSignalLowFlow() .. " rf/t"), colors.green,colors.black)
     end
-    f.draw_text(mon, IOX, IOY+2, ("In:   " .. fluxInput.getFlow() .. " rf/t"), colors.red, colors.black)
+    f.draw_text(mon, IOX + string.len("In:   "), IOY+singleLine, (fluxInput.getFlow() .. " rf/t"), colors.red, colors.black)
     
     netGain = fluxOutput.getSignalLowFlow() - fluxInput.getSignalLowFlow()
     if netGain > 0 then
@@ -217,21 +226,21 @@ function drawButtons(mon)
     
 end
 
+statusX, statusY= 6, 17
 function drawReactorStatus(mon)
-    drawButtons(mon)
-
+    
         --draw reactor status
     if reactorInfo.status == "running" then
         statusColor = colors.green
         statusText = "running"
     elseif reactorInfo.status == "warming_up" then
-        statusColor = colors.blue
+        statusColor = colors.orange
         statusText = "heating"
     elseif reactorInfo.status == "stopping" then
         statusColor = colors.purple
         statusText = "stopping"
     elseif reactorInfo.status == "cooling" then
-        statusColor = colors.orange
+        statusColor = colors.blue
         statusText = "cooling"
     elseif reactorInfo.status == "cold" then
         statusColor = colors.gray
@@ -240,12 +249,31 @@ function drawReactorStatus(mon)
         statusColor = colors.gray
     end
     
-    statusX, statusY= 6, 17
     
-    f.draw_text(mon, statusX, statusY, ("Reactor is "), colors.white, colors.black)
-    f.draw_text(mon, statusX + 11, statusY, statusText, statusColor, colors.black)
     
-    f.draw_text(mon, statusX, statusY+2, ("Fuel rate: " .. reactorInfo.fuelConversionRate .. "nb/t"), colors.white, colors.black)
+    --clear status text
+    f.draw_line(mon, statusX+ string.len("Reactor is "), statusY, 10, colors.black)
+    f.draw_line(mon, statusX+ string.len("Fuel rate: "), statusY+singleLine, 10, colors.black)
+    
+    --update status text
+    f.draw_text(mon, statusX+ string.len("Reactor is "), statusY, statusText, statusColor, colors.black)
+    f.draw_text(mon, statusX+ string.len("Fuel rate: "), statusY+singleLine, (reactorInfo.fuelConversionRate .. "nb/t"), colors.white, colors.black)
+    
+end
+
+function drawStaticText(mon)
+    --draw Info
+    f.draw_text(mon, infoX, infoY, ("Fuel used: ") ,colors.white, colors.black)
+    f.draw_text(mon, infoX, infoY+singleLineInfo, ("Temperature: ") ,colors.white, colors.black)
+    f.draw_text(mon, infoX, infoY+(2*singleLineInfo), ("Field power: ") ,colors.white, colors.black)
+    
+    --draw IO
+    f.draw_text(mon, IOX, IOY, ("Out: "), colors.green,colors.black)
+    f.draw_text(mon, IOX , IOY+singleLine, ("In:   "), colors.red, colors.black)
+    
+    --draw status
+    f.draw_text(mon, statusX, statusY, ("Reactor is"), colors.white, colors.black)
+    f.draw_text(mon, statusX, statusY+singleLine, ("Fuel rate: "), colors.white, colors.black)
     
 end
 
@@ -445,10 +473,13 @@ end
 
 
 function updateGUI()
-    
+    drawOutlines(mon) 
+    drawStaticText(mon)
+    drawButtons(mon)
+    --sleep(3)
     while true do
-        f.clear(mon)
-        drawOutlines(mon)   
+        --f.clear(mon)
+          
         reactorInfo = reactor.getReactorInfo()
         drawReactorInfo(mon, reactorInfo)
         drawReactorIO(mon, reactorInfo)
