@@ -16,6 +16,8 @@ The back of the advanced computer needs to be attached to a reactor stabilized, 
 
 One wired modem needs to be attached to the top of the advanced computer, andother one needs to be attached to a 4x5 advanced monitor. The last wired modem needs to be connected to the flux gate that manages how much power is supplied to the reactor energy injector. Make sure to right click the modems to turn them on.
 
+To run the program open the advanced computer and type "pastebin getaGrPQ2AQ" and then execute "install".
+
 The following pictures show how everything needs to be set up.
 ![Reactor0](https://user-images.githubusercontent.com/964368/120327826-78d08780-c2ea-11eb-9a23-1d5af24aace6.png)
 ![Reactor1](https://user-images.githubusercontent.com/964368/120327835-7bcb7800-c2ea-11eb-857c-bfbde29165e0.png)
